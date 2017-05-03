@@ -14,17 +14,3 @@
 
 </head>
 <body>
-
-<div id="preloader" style="display: none">
-    <div id="status">
-        <p class="center-text">
-            正在加载.....
-            <em>欢迎来到我的博客网站。请稍等..</em>
-        </p>
-    </div>
-</div>
-<div class="header">
-    <div>
-        <a>cola</a>
-    </div>
-</div>

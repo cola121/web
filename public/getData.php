@@ -5,89 +5,33 @@
  * Date: 2017/4/13
  * Time: 9:19
  */
-var_dump(base64_decode('%E7%A7%91%E5%B9%BB'));
-//var_dump($_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);
-//var_dump($_SERVER['PHP_SELF']);
-//var_dump($_SERVER['QUERY_STRING']);
-//var_dump($_SERVER['HTTP_REFERER']);
-//var_dump($_SERVER['SERVER_PORT']);
-//var_dump($_SERVER['REMOTE_ADDR']);
-//var_dump($_SERVER['REMOTE_HOST']);
-//echo "<br>";
-//$url = "http:://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
-//$path = parse_url($url);
-//var_dump(pathinfo($path['path'],PATHINFO_DIRNAME));
-//var_dump($_GET['A']);
-//
-//function test($str) {
-//    $pattern='/(.)\1/';
-//    $str = preg_replace($pattern,'',$str);
-//    if (preg_match($pattern, $str)) {
-//        return test($str);
-//    } else {
-//        return $str;
-//    }
-//}
-//$str='gaewwenngoeeojjgegop';
-//var_dump(test($str));
 
-$reqUrl = 'https://movie.douban.com/subject/1292720/';
-////$reqUrl = 'https://movie.douban.com/subject/1295644/';
-$curl = curl_init();
-curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($curl, CURLOPT_TIMEOUT, 100);
-curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, true);
-curl_setopt($curl, CURLOPT_URL, $reqUrl);
-$wxData = curl_exec($curl);
-curl_close($curl);
-//$pattern = '/<span property="v:summary" class="">(.*)<\/span>/isU';
-$pattern = '/<div id="info">(.*)<\/div>/isU';
-//$pattern = '/<a.*?<span class="title">([^<]+)/s';
-preg_match_all($pattern,$wxData,$arr);
-////返回匹配到的数组
-//echo "<pre>";
-//print_r($arr);exit;
-//
-//$movie = new getDouBanMovieInfo($reqUrl);
-////echo"<pre>";
-////print_r($movie->getMovieInfos());exit;
-////$patternb = '/<a href=".*" rel="v:directedBy">(.*)<\/a>/isU';
-////$patternb = '/<a href=".*" rel="v:starring">(.*)<\/a>/isU';
-////$patternb = '/<span property="v:genre">(.*)<\/span>/isU';
-////$patternb = '/<span class="pl">制片国家\/地区:<\/span>(.*)<br\/>/isU';
-////$patternb = '/<span class="pl">语言:<\/span>(.*)<br\/>/isU';
-////$patternb = '/<span class="pl">片长:<\/span>(.*)<br\/>/isU';
-////$patternb = '/<span class="pl">又名:<\/span>(.*)<br\/>/isU';
-$patternb = '/<span property="v:initialReleaseDate" content=\".*\">(.*)<\/span>/isU';
-preg_match_all($patternb,$arr[1][0],$arrb);
+//$movies = getTop250Movie::getAllMovieInfo();
+$movie = new getDouBanMovieInfo('https://movie.douban.com/subject/1292720/');
+
 echo "<pre>";
-print_r($arrb);exit;
-//
-//
-//
-//for ($i=20;$i<=44;$i++) {
-//    //$patternb = '/<span class=\"title\">(.*)<\/span>/isU';
-//    //$patternb = '/<span class=\"other\">(.*)<\/span>/isU';
-//   // $patternb = '/<img alt=".*?" src="(.*?)" class="">/is';
-//    //$patternb = '/<span class=\"inq\">(.*)<\/span>/isU';
-//    //$patternb = '/<span class=\"rating_num\".*>(.*)<\/span>/isU';
-//    $patternb = '/<p class=\"\">(.*)<\/p>/isU';
-//    if (preg_match_all($patternb,$arr[0][$i],$title)) {
-//        $t1 = mb_strpos($title[1][0],'导演:')+3;
-//        $t2 = mb_strpos($title[1][0],'主');
-//        echo $s = mb_substr($title[1][0],$t1,$t2-$t1);
-////        echo "<pre>";
-////        print_r($title[1]);
-//    }
-////    $t1 = mb_strpos($str,'提');
-////    $t2 = mb_strpos($str,'串');
-////    echo $s = mb_substr($str,$t1,$t2-$t1);
-//
-//}
+print_r($movie->getMovieYear());
 
 class getTop250Movie
 {
+
+    public static function getData($url)
+    {
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 100);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, true);
+        curl_setopt($curl, CURLOPT_URL, $url);
+        $resData = curl_exec($curl);
+        curl_close($curl);
+        $pattern = '/<li>(.*)<\/li>/isU';
+
+        preg_match_all($pattern, $resData, $arr);
+
+        return $arr[0];
+    }
+
     public static function getMovies($str)
     {
         $movies = array();
@@ -99,6 +43,41 @@ class getTop250Movie
         $movies['quote'] = self::getMovieQuote($str);
 
         return $movies;
+    }
+
+    public static function getAllMovieInfo()
+    {
+        $movies = array();
+        for ($i = 0; $i <= 50; $i+=25) {
+            $reqUrl = 'https://movie.douban.com/top250?start='.$i.'&filter=';
+            $resData = self::getData($reqUrl);
+            $m = 0;
+            foreach ($resData as $row) {
+                if (self::getMoveName($row)) {
+                    $movieLink = self::getInfoUrl($row);
+                    $info = new getDouBanMovieInfo($movieLink[0]);
+                    $movies[$m] = $info->getMovieInfos();
+                    $name= self::getMoveName($row);
+                    $movies[$m]['c_name'] = $name[0];
+                    $movies[$m]['e_name'] = str_replace('&nbsp;/&nbsp;', '', $name[1]);
+                    $movies[$m]['other_name'] = self::getOtherName($row);
+                    $movies[$m]['img'] = self::getMovieImg($row);
+                    $movies[$m]['points'] = self::getMoviePoints($row);
+                    $movies[$m]['quote'] = self::getMovieQuote($row);
+                    $m++;
+                }
+            }
+        }
+        return $movies;
+    }
+
+    public static function getInfoUrl($str)
+    {
+        $otherTitle = '/<a href="(.*)">/isU';
+        if (preg_match_all($otherTitle,$str,$res)) {
+            return $res[1];
+        }
+        return false;
     }
 
     public static function getMoveName($str)
@@ -114,7 +93,9 @@ class getTop250Movie
     {
         $otherTitle = '/<span class=\"other\">(.*)<\/span>/isU';
         if (preg_match_all($otherTitle,$str,$res)) {
-            return $res[1];
+            $result = str_replace(' ', '', str_replace('&nbsp;/&nbsp;', '', $res[1][0]));
+            $nameArr = explode('/', $result);;
+            return implode(',', $nameArr);
         }
         return false;
     }
@@ -166,12 +147,14 @@ class getTop250Movie
 class getDouBanMovieInfo
 {
     public $reqUrl;
+    public $fullData;
     public $resData;
 
     public $cityParttern = '/<span class="pl">制片国家\/地区:<\/span>(.*)<br\/>/isU';
     public $languageParttern = '/<span class="pl">语言:<\/span>(.*)<br\/>/isU';
     public $longParttern = '/<span property="v:runtime" content="(.*)">/isU';
     public $OthNamePatternb = '/<span class="pl">又名:<\/span>(.*)<br\/>/isU';
+    public $yearPattern = '/<span property="v:initialReleaseDate" content="(.*)">/isU';
 
     public function __construct($reqUrl)
     {
@@ -185,6 +168,7 @@ class getDouBanMovieInfo
         $data = curl_exec($curl);
         curl_close($curl);
 
+        $this->fullData = $data;
         $pattern = '/<div id="info">(.*)<\/div>/isU';
         preg_match_all($pattern, $data, $res);
         $this->resData = $res[1][0];
@@ -200,9 +184,22 @@ class getDouBanMovieInfo
         $movieInfo['tags'] = $this->getMovieTags();
         $movieInfo['city'] = $this->getMovieCitys();
         $movieInfo['language'] = $this->getMovieLanguages();
+        $movieInfo['summary'] = $this->getMovieSummary();
         $movieInfo['long'] = $this->getMovieInfoByParttern($this->longParttern);
 
         return $movieInfo;
+    }
+
+    public function getMovieSummary()
+    {
+        $pattern = '/<span property="v:summary".*>(.*)<\/span>/isU';
+
+        if (preg_match_all($pattern, $this->fullData, $res)) {
+
+            return $res[1][0];
+        }
+
+        return false;
     }
 
     public function getMovieDirector()
@@ -276,6 +273,16 @@ class getDouBanMovieInfo
         return false;
     }
 
+    public function getMovieYear()
+    {
+        $pattern = '/<span property="v:initialReleaseDate" content=\".*\">(.*)<\/span>/isU';
+
+        if (preg_match_all($pattern, $this->resData, $res)) {
+            $year = substr($res[1][0], 0, 10);
+            return $year;
+        }
+    }
+
     public function getMovieInfoByParttern($pattern)
     {
         if (preg_match_all($pattern, $this->resData, $res)) {
@@ -284,13 +291,4 @@ class getDouBanMovieInfo
         return false;
     }
 
-//$patternb = '/<a href=".*" rel="v:directedBy">(.*)<\/a>/isU';
-//$patternb = '/<a href=".*" rel="v:starring">(.*)<\/a>/isU';
-//$patternb = '/<span property="v:genre">(.*)<\/span>/isU';
-
-//$patternb = '/<span property="v:initialReleaseDate" content=\".*\">(.*)<\/span>/isU';
-//$patternb = '/<span class=\'pl\'>编剧<\/span>\: <span class=\'attrs\'><a href=".*">(.*)<\/a>/isU';
-
-
-  //  preg_match_all($patternb,$arr[1][0],$arrb);
 }
