@@ -19,16 +19,34 @@ class IndexController extends Controller
 {
     public function index(Request $request)
     {
+        $num = rand(1,10);
+        $movies = Movie::where('id', '>', 47+$num*15)
+                    ->take(15)
+                    ->get();
 
-        $movies = Movie::all();
+        //$movie['name'] = $movies->c_name;
+        $i = 0;
         foreach ($movies as $row) {
-            echo '<li><p>'.$row['c_name'].'</p>
-                <img src="'.$row['image'].'" width="30">
-                </li>';
+            $movie[$i]['id'] = $row->id;
+            $movie[$i]['name'] = $row->c_name;
+            $movie[$i]['image'] = $row->image;
+            $movie[$i]['director'] = $row->director;
+            $movie[$i]['star'] = $row->star;
+            $movie[$i]['quote'] = $row->quote;
+            $movie[$i]['year'] = $row->m_year;
+            $movie[$i]['tag'] = $row->tag;
+            $points = explode('.', $row->points);
+            $movie[$i]['pointsa'] = intval($points[0]);
+            $movie[$i]['pointsb'] = count($points) > 1 ? intval($points[1]) : 0;
+            $i++;
         }
+        //$movie[]['image'] = $movies->image;
 
+        $result['data'] = $movie;
 
-
+        return response()->json([
+            'data' => $movie
+        ]);
 
 
 //        $movies = getTop250Movie::getAllMovieInfo();
@@ -56,10 +74,14 @@ class IndexController extends Controller
 //        echo 'done';
     }
 
-    public function test($name)
+    public function getMovieInfo(Request $request, $id)
     {
+
+        $movie = Movie::find(intval($id));
+
         return response()->json([
-            'name' => $name
+            'data' => $movie
         ]);
+
     }
 }

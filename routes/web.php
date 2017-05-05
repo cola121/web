@@ -21,4 +21,5 @@ Route::group(['domain' => 'm.hankele.cn'], function()
 
     Route::get('/','Wap\IndexController@index');
 
+    Route::get('/getMovieInfo/{id}','Wap\IndexController@getMovieInfo');
 });
